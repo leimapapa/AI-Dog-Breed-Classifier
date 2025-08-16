@@ -663,10 +663,10 @@
 
             // Manage livePredictionDisplay visibility based on continuous mode and sidebar state
             if (continuousPredictionActive && !predictionsSidebar.classList.contains('open') && isMobileDevice()) { // Only show on mobile
-                livePredictionDisplay.classList.remove('hidden');
+                livePredictionDisplay.classList.add('hidden');
                 initialMessage.classList.add('hidden'); // Hide initial message
             } else {
-                livePredictionDisplay.classList.add('hidden');
+                livePredictionDisplay.classList.remove('hidden');
                 // Show initial message only if no live prediction is active AND (not on mobile OR camera is stopped/not started)
                 if (!continuousPredictionActive && (!webcamStream || !predictionsContent.children.length || !isMobileDevice())) {
                     initialMessage.classList.remove('hidden');
