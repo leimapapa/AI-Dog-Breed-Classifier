@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8" />
+	<title>🔮🐶 AI Dog Breed Classifier</title>
+	<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
+	<style>
+		:root {
+			--bg: #0f0f0f;
+			--card: rgba(255, 255, 255, .05);
+			--accent: #00d4ff;
+			--accent2: #ff007a;
+			--text: #e0e0e0;
+			--radius: 16px;
+			--shadow: 0 8px 32px rgba(0, 0, 0, .4);
+		}
+
+		* {
+			box-sizing: border-box;
+			margin: 0;
+			padding: 0;
+			font-family: system-ui;
+		}
+
+		body {
+			min-height: 100vh;
+			background: linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 100%);
+			color: var(--text);
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			padding: 20px;
+		}
+
+		.glass {
+			background: var(--card);
+			border: 1px solid rgba(255, 255, 255, .08);
+			border-radius: var(--radius);
+			padding: 30px;
+			box-shadow: var(--shadow);
+			max-width: 600px;
+			width: 100%;
+			backdrop-filter: blur(10px);
+		}
+
+		h1 {
+			text-align: center;
+			margin-bottom: 10px;
+			font-size: 28px;
+		}
+
+		p.sub {
+			text-align: center;
+			margin-bottom: 20px;
+			opacity: .7;
+			font-size: 14px;
+		}
+
+		/* toggle */
+		.toggle-bar {
+			display: flex;
+			border-radius: var(--radius);
+			overflow: hidden;
+			margin-bottom: 20px;
+			background: rgba(255, 255, 255, .1);
+		}
+
+		.toggle-btn {
+			flex: 1;
+			padding: 10px;
+			border: none;
+			font-weight: 600;
+			cursor: pointer;
+			transition: .3s;
+			color: #fff;
+			background: transparent;
+		}
+
+		.toggle-btn.active {
+			background: var(--accent);
+			color: #000;
+		}
+
+		/* upload */
+		.upload-area {
+			border: 2px dashed rgba(255, 255, 255, .2);
+			border-radius: var(--radius);
+			padding: 40px 20px;
+			text-align: center;
+			cursor: pointer;
+			transition: .3s;
+		}
+
+		.upload-area:hover {
+			border-color: var(--accent);
+			background: rgba(0, 212, 255, .05);
+		}
+
+		.upload-area.dragover {
+			background: rgba(0, 212, 255, .15);
+			border-color: var(--accent);
+		}
+
+		#fileInput {
+			display: none;
+		}
+
+		/* webcam */
+		#webcamArea {
+			display: none;
+		}
+
+		#webcamFeed {
+			width: 100%;
+			border-radius: var(--radius);
+			background: #000;
+		}
+
+		.webcam-controls {
+			display: flex;
+			gap: 10px;
+			margin-top: 12px;
+		}
+
+		.webcam-controls button {
+			flex: 1;
+			padding: 12px;
+			border: none;
+			border-radius: var(--radius);
+			font-weight: 600;
+			cursor: pointer;
+			transition: .3s;
+		}
+
+		#captureBtn {
+			background: var(--accent);
+			color: #000;
+		}
+
+		#toggleLiveBtn {
+			background: var(--accent2);
+			color: #fff;
+		}
+
+		button:hover {
+			filter: brightness(1.15);
+		}
+
+		button:disabled {
+			opacity: .5;
+			cursor: not-allowed;
+		}
+
+		/* preview & results */
+		#imagePreview {
+			width: 100%;
+			max-height: 260px;
+			object-fit: contain;
+			border-radius: var(--radius);
+			margin: 20px 0;
+			display: none;
+		}
+
+		#loading {
+			display: none;
+			text-align: center;
+			margin: 20px 0;
+		}
+
+		.spinner {
+			width: 24px;
+			height: 24px;
+			border: 3px solid rgba(255, 255, 255, .2);
+			border-top-color: var(--accent);
+			border-radius: 50%;
+			animation: spin 1s linear infinite;
+			margin: 0 auto 8px;
+		}
+
+		@keyframes spin {
+			to {
+				transform: rotate(360deg);
+			}
+		}
+
+		#results {
+			display: none;
+		}
+
+		.prediction {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			background: rgba(255, 255, 255, .07);
+			margin: 8px 0;
+			padding: 12px 16px;
+			border-radius: var(--radius);
+		}
+
+		.confidence-bar {
+			width: 120px;
+			height: 8px;
+			background: rgba(255, 255, 255, .2);
+			border-radius: 4px;
+			overflow: hidden;
+		}
+
+		.confidence-fill {
+			height: 100%;
+			background: linear-gradient(90deg, var(--accent), var(--accent2));
+			transition: width .4s;
+		}
+
+		#messageBox {
+			margin-top: 15px;
+			padding: 12px;
+			border-radius: var(--radius);
+			text-align: center;
+			font-weight: 600;
+			display: none;
+		}
+
+		#messageBox.error {
+			background: rgba(255, 0, 0, .15);
+			color: #ff6b6b;
+			border: 1px solid #ff6b6b;
+		}
+
+		#messageBox.success {
+			background: rgba(0, 255, 150, .15);
+			color: #00e676;
+			border: 1px solid #00e676;
+		}
+	</style>
+</head>
+
+<body>
+	<div class="glass">
+		<h1>🔮🐶 AI Dog Breed Classifier</h1>
+		<p class="sub">Choose an input source below</p>
+
+		<!-- Mode toggle -->
+		<div class="toggle-bar">
+			<button id="uploadToggle" class="toggle-btn active">📁 Upload</button>
+            <button id="webcamToggle" class="toggle-btn">📹 Webcam</button>
+		</div>
+
+		<!-- Upload panel -->
+		<div id="uploadArea" class="upload-area">
+			Drop an image here or click to browse
+			<input type="file" id="fileInput" accept="image/*" />
+		</div>
+
+		<!-- Webcam panel -->
+		<div id="webcamArea">
+			<video id="webcamFeed" autoplay playsinline></video>
+			<div class="webcam-controls">
+				<button id="captureBtn">📸 Capture & Predict</button>
+                <button id="toggleLiveBtn">⏯ Start Continuous</button>
+			</div>
+		</div>
+
+		<img id="imagePreview" alt="Preview" />
+
+		<div id="loading">
+			<div class="spinner"></div>Processing_
+		</div>
+
+		<div id="results">
+			<h3>Top Predictions</h3>
+			<div id="predictions"></div>
+		</div>
+
+		<div id="messageBox"></div>
+	</div>
+
+	<script>
+		const MODEL_CONFIG = {"classes": ["Affenpinscher", "Afghan Hound", "African Hunting Dog", "Airedale", "American Staffordshire Terrier", "Appenzeller", "Australian Terrier", "Basenji", "Basset", "Beagle", "Bedlington Terrier", "Bernese Mountain Dog", "Black and Tan Coonhound", "Blenheim Spaniel", "Bloodhound", "Bluetick", "Border Collie", "Border Terrier", "Borzoi", "Boston Bull", "Bouvier des Flandres", "Boxer", "Brabancon Griffon", "Briard", "Brittany Spaniel", "Bull Mastiff", "Cairn", "Cardigan", "Chesapeake Bay Retriever", "Chihuahua", "Chow", "Clumber", "Cocker Spaniel", "Collie", "Curly Coated Retriever", "Dandie Dinmont", "Dhole", "Dingo", "Doberman", "English Foxhound", "English Setter", "English Springer", "EntleBucher", "Eskimo Dog", "Flat Coated Retriever", "French Bulldog", "German Shepherd", "German Short-Haired Pointer", "Giant Schnauzer", "Golden Retriever", "Gordon Setter", "Great Dane", "Great Pyrenees", "Greater Swiss Mountain Dog", "Groenendael", "Ibizan Hound", "Irish Setter", "Irish Terrier", "Irish Water Spaniel", "Irish Wolfhound", "Italian Greyhound", "Japanese Spaniel", "Keeshond", "Kelpie", "Kerry Blue Terrier", "Komondor", "Kuvasz", "Labrador Retriever", "Lakeland Terrier", "Leonberg", "Lhasa", "Malamute", "Malinois", "Maltese", "Mexican Hairless", "Miniature Pinscher", "Miniature Poodle", "Miniature Schnauzer", "Newfoundland", "Norfolk Terrier", "Norwegian Elkhound", "Norwich Terrier", "Old English Ssheepdog", "Otterhound", "Papillon", "Pekinese", "Pembroke", "Pomeranian", "Pug", "Redbone", "Rhodesian Ridgeback", "Rottweiler", "Saint Bernard", "Saluki", "Samoyed", "Schipperke", "Scotch Terrier", "Scottish Deerhound", "Sealyham Terrier", "Shetland Sheepdog", "Shih-Tzu", "Siberian Husky", "Silky Terrier", "Soft-Coated Wheaten Terrier", "Staffordshire Bullterrier", "Standard Poodle", "Standard Schnauzer", "Sussex Spaniel", "Tibetan Mastiff", "Tibetan Terrier", "Toy Poodle", "Toy Terrier", "Vizsla", "Walker Hound", "Weimaraner", "Welsh Springer Spaniel", "West Highland White Terrier", "Whippet", "Wire-Haired Fox Terrier", "Yorkshire Terrier"], "num_classes": 120, "img_size": 224, "input_mean": [0.485, 0.456, 0.406], "input_std": [0.229, 0.224, 0.225], "best_val_accuracy": 69.89795918367346, "model_name": "mobilenet_classifier"};
+		const MODEL_INPUT_NAME = 'input';
+		let session = null;
+		let webcamStream = null;
+		let liveInterval = null;
+		/* --- helpers --- */
+		const $ = id => document.getElementById(id);
+		const showMsg = (msg, type = 'info') => {
+			const box = $('messageBox');
+			box.textContent = msg;
+			box.className = type;
+			box.style.display = 'block';
+			setTimeout(() => box.style.display = 'none', 4000);
+		};
+		/* --- model --- */
+		async function initModel() {
+			try {
+				session = await ort.InferenceSession.create('./mobilenet_classifier.onnx', {
+						executionProviders: ['wasm']
+					});
+				showMsg('Model ready 🚀', 'success');
+			} catch (e) {
+				showMsg('Model error: ' + e.message, 'error');
+			}
+		}
+		/* --- image & prediction --- */
+		function preprocess(src) {
+			const {
+				input_mean,
+				input_std,
+				img_size
+			} = MODEL_CONFIG;
+			const cvs = document.createElement('canvas');
+			cvs.width = cvs.height = img_size;
+			const ctx = cvs.getContext('2d');
+			ctx.drawImage(src, 0, 0, img_size, img_size);
+			const d = ctx.getImageData(0, 0, img_size, img_size).data;
+			const t = new Float32Array(3 * img_size * img_size);
+			for (let i = 0; i < img_size * img_size; i++) {
+				t[i] = (d[i * 4] / 255 - input_mean[0]) / input_std[0];
+				t[img_size * img_size + i] = (d[i * 4 + 1] / 255 - input_mean[1]) / input_std[1];
+				t[2 * img_size * img_size + i] = (d[i * 4 + 2] / 255 - input_mean[2]) / input_std[2];
+			}
+			return t;
+		}
+		async function predict(src) {
+			if (!session) {
+				showMsg('Model not ready', 'info');
+				return;
+			}
+			$('loading').style.display = 'block';
+			$('results').style.display = 'none';
+			try {
+				const data = preprocess(src);
+				const tensor = new ort.Tensor('float32', data, [1, 3, 224, 224]);
+				const outMap = await session.run({
+					[MODEL_INPUT_NAME]: tensor
+				});
+				const logits = Array.from(outMap[Object.keys(outMap)[0]].data);
+				const max = Math.max(...logits);
+				const probs = logits.map(l => Math.exp(l - max));
+				const sum = probs.reduce((a, b) => a + b, 0);
+				const results = probs.map((p, i) => ({
+						class: MODEL_CONFIG.classes[i],
+						confidence: p / sum
+					}))
+					.sort((a, b) => b.confidence - a.confidence);
+				displayResults(results);
+			} catch (e) {
+				showMsg('Prediction failed: ' + e.message, 'error');
+			} finally {
+				$('loading').style.display = 'none';
+			}
+		}
+
+		function displayResults(res) {
+			const box = $('predictions');
+			box.innerHTML = '';
+			res.slice(0, 5).forEach(r => {
+				const pct = (r.confidence * 100).toFixed(1);
+				box.insertAdjacentHTML('beforeend', `
+          <div class="prediction">
+            <span>${r.class}</span>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span>${pct}%</span>
+              <div class="confidence-bar"><div class="confidence-fill" style="width:${pct}%"></div></div>
+            </div>
+          </div>`);
+			});
+			$('results').style.display = 'block';
+		}
+		/* --- webcam helpers --- */
+		async function startWebcam() {
+			if (webcamStream) return;
+			try {
+				webcamStream = await navigator.mediaDevices.getUserMedia({
+					video: true
+				});
+				$('webcamFeed').srcObject = webcamStream;
+			} catch {
+				showMsg('Webcam access denied', 'error');
+			}
+		}
+
+		function stopWebcam() {
+			if (liveInterval) {
+				clearInterval(liveInterval);
+				liveInterval = null;
+			}
+			if (webcamStream) {
+				webcamStream.getTracks().forEach(t => t.stop());
+				webcamStream = null;
+			}
+			$('webcamFeed').srcObject = null;
+			$('toggleLiveBtn').textContent = '⏯ Start Continuous';
+			$('toggleLiveBtn').style.background = 'var(--accent2)';
+		}
+		/* --- UI mode switch --- */
+		function setMode(mode) {
+			const uploadBtn = $('uploadToggle'),
+				webcamBtn = $('webcamToggle');
+			const uploadArea = $('uploadArea'),
+				webcamArea = $('webcamArea');
+			if (mode === 'upload') {
+				uploadBtn.classList.add('active');
+				webcamBtn.classList.remove('active');
+				uploadArea.style.display = 'block';
+				webcamArea.style.display = 'none';
+				stopWebcam();
+			} else {
+				webcamBtn.classList.add('active');
+				uploadBtn.classList.remove('active');
+				uploadArea.style.display = 'none';
+				webcamArea.style.display = 'block';
+				$('imagePreview').style.display = 'none';
+				startWebcam();
+			}
+		}
+		/* --- event wiring --- */
+		window.addEventListener('DOMContentLoaded', () => {
+			initModel();
+			/* mode toggles */
+			$('uploadToggle').addEventListener('click', () => setMode('upload'));
+			$('webcamToggle').addEventListener('click', () => setMode('webcam'));
+			/* upload */
+			const upArea = $('uploadArea'),
+				fileInput = $('fileInput');
+			upArea.addEventListener('click', () => fileInput.click());
+			fileInput.addEventListener('change', e => handleFile(e.target.files[0]));
+			['dragover', 'dragleave', 'drop'].forEach(evt => {
+				upArea.addEventListener(evt, e => {
+					e.preventDefault();
+					upArea.classList.toggle('dragover', evt === 'dragover');
+					if (evt === 'drop' && e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+				});
+			});
+			/* webcam capture & continuous */
+			$('captureBtn').addEventListener('click', () => captureFrame());
+			$('toggleLiveBtn').addEventListener('click', () => {
+				if (liveInterval) {
+					clearInterval(liveInterval);
+					liveInterval = null;
+					$('toggleLiveBtn').textContent = '⏯ Start Continuous';
+					$('toggleLiveBtn').style.background = 'var(--accent2)';
+					showMsg('Continuous stopped', 'info');
+				} else {
+					liveInterval = setInterval(() => captureFrame(), 100);
+					$('toggleLiveBtn').textContent = '⏸ Stop Continuous';
+					$('toggleLiveBtn').style.background = '#ff4757';
+					showMsg('Continuous started', 'success');
+				}
+			});
+			setMode('upload'); // default
+		});
+
+		function handleFile(file) {
+			if (!file.type.startsWith('image/')) {
+				showMsg('Choose an image', 'error');
+				return;
+			}
+			const reader = new FileReader();
+			reader.onload = e => {
+				const img = new Image();
+				img.onload = () => {
+					$('imagePreview').src = e.target.result;
+					$('imagePreview').style.display = 'block';
+					predict(img);
+				};
+				img.src = e.target.result;
+			};
+			reader.readAsDataURL(file);
+		}
+
+		function captureFrame() {
+			const v = $('webcamFeed');
+			const cvs = document.createElement('canvas');
+			cvs.width = v.videoWidth;
+			cvs.height = v.videoHeight;
+			cvs.getContext('2d').drawImage(v, 0, 0);
+			const img = new Image();
+			img.onload = () => {
+				$('imagePreview').src = img.src;
+				$('imagePreview').style.display = 'block';
+				predict(img);
+			};
+			img.src = cvs.toDataURL('image/jpeg');
+		}
+	</script>
+</body>
+</html>
