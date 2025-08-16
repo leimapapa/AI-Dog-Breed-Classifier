@@ -90,6 +90,7 @@
         #uploadArea, #webcamArea {
             width: 100%;
             min-height: 200px;
+            max-height: 50vh;
             display: none; /* Controlled by JS */
             flex-direction: column;
             align-items: center;
@@ -378,7 +379,7 @@
         /* Mini Predictions Button (when sidebar is closed) */
         .mini-predictions-container {
             position: fixed;
-            bottom: 3.5rem;
+            bottom: 2.5rem;
             right: 1rem;
             background-color: rgba(255, 255, 255, 0.85); /* Glassmorphism effect */
             backdrop-filter: blur(8px);
@@ -477,8 +478,6 @@
                 display: none; /* Hide initial message on desktop when not needed */
             }
             #livePredictionDisplay {
-                /* On desktop, live prediction might be desired next to the controls,
-                   or just let the sidebar handle it. For now, hide it as sidebar is always open. */
                 display: none !important;
             }
         }
@@ -498,7 +497,7 @@
             <!-- Mode toggle -->
             <div class="toggle-bar mb-6">
                 <button id="uploadToggle" class="toggle-btn active">📁 Upload</button>
-                <button id="webcamToggle" class="toggle-btn">📹 Webcam</button>
+                <button id="webcamToggle" class="toggle-btn">📸 Webcam</button>
             </div>
 
             <!-- Upload panel -->
@@ -656,8 +655,10 @@
             // AND only on mobile
             if (!predictionsSidebar.classList.contains('open') && predictionsContent.children.length > 0 && isMobileDevice()) {
                 miniPredictions.classList.remove('hidden');
+                livePredictionDisplay.classList.add('hidden');
             } else {
                 miniPredictions.classList.add('hidden');
+                livePredictionDisplay.classList.remove('hidden');
             }
 
             // Manage livePredictionDisplay visibility based on continuous mode and sidebar state
@@ -1094,4 +1095,3 @@
     </script>
 </body>
 </html>
-
