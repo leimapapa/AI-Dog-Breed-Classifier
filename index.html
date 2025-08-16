@@ -25,7 +25,6 @@
             --light-message-error-bg: #fee2e2; /* red-100 */
             --light-message-error-color: #dc2626; /* red-600 */
             --light-message-error-border: #ef4444; /* red-500 */
-            --light-message-primary-color: #f3f4f6; /* blue-600 */
             --light-message-success-bg: #dcfce7; /* green-100 */
             --light-message-success-color: #16a34a; /* green-600 */
             --light-message-success-border: #22c55e; /* green-500 */
@@ -40,14 +39,13 @@
             --accent-secondary: #a78bfa; /* Violet-400, brighter for dark mode */
             --text-color: #d1d5db; /* Light gray for text */
             --border-color: #4b5563; /* Darker border */
-            --upload-text: #9ca3af; /* Lighter gray for upload text */
+            --upload-text: #e0e0e0; /* Lighter gray for upload text, changed from #9ca3af */
             --message-info-bg: #1e3a8a; /* Darker blue */
             --message-info-color: #93c5fd; /* Lighter blue */
             --message-info-border: #3b82f6;
             --message-error-bg: #7f1d1d; /* Darker red */
             --message-error-color: #fca5a5; /* Lighter red */
             --message-error-border: #ef4444;
-            --message-primary-color: #f3f4f6; /* blue-600 */
             --message-success-bg: #166534; /* Darker green */
             --message-success-color: #a7f3d0; /* Lighter green */
             --message-success-border: #22c55e;
@@ -167,7 +165,7 @@
         #uploadArea, #webcamArea {
             width: 100%;
             min-height: 200px;
-            max-height: 50vh; /* Responsive height for video */
+            max-height: 65vh; /* Responsive height for video, increased for mobile */
             display: none;
             flex-direction: column;
             align-items: center;
@@ -212,9 +210,8 @@
         /* Video Container */
         .video-container {
             width: 100%;
-            /* min-height: 250px; /* Minimum height for video container on mobile */
-            /* max-height: 70vh; /* Max height to fit within viewport */
-            aspect-ratio: 16 / 9; /* Maintain aspect ratio for video */
+            height: 60vh; /* Occupy 60% of viewport height on mobile for camera app feel */
+            /* aspect-ratio: 16 / 9; /* Removed to allow height to dominate */
             position: relative;
             overflow: hidden;
             border-radius: 0.75rem;
@@ -559,7 +556,7 @@
         }
         .dark #livePredictionDisplay {
              background-color: var(--message-info-bg);
-             color: var(--message-primary-color);
+             color: var(--message-info-color);
         }
 
 
@@ -582,7 +579,8 @@
             }
 
             .video-container {
-                height: 50vh;
+                height: 50vh; /* Revert to 50vh for desktop */
+                aspect-ratio: 16 / 9; /* Re-add aspect ratio for desktop */
                 max-width: none; /* No max width for video on desktop */
                 min-height: 400px; /* Ensure a decent height */
             }
@@ -622,7 +620,7 @@
         <!-- Main Content Area -->
         <div class="main-content flex flex-col items-center w-full">
             <h3 class="font-extrabold mb-2 text-center text-gray-800 dark:text-gray-200 text-2xl">🐕 AI Dog Breed Classifier</h3>
-            <p id="initialMessage" class="text-sm text-gray-600 dark:text-gray-400 mb-4 text-center">Choose an input source below to get started!</p>
+            <p id="initialMessage" class="text-sm text-gray-600 dark:text-gray-200 mb-4 text-center">Choose an input source below to get started!</p>
             <div id="livePredictionDisplay" class="hidden">
                 <!-- Live prediction will appear here -->
             </div>
@@ -641,7 +639,7 @@
             </div>
 
             <!-- Uploaded Image Preview (shown only in Upload mode when an image is loaded) -->
-            <div id="uploadedImagePreviewContainer" class="hidden w-full h-48 overflow-hidden rounded-lg mb-6 bg-gray-100 dark:bg-gray-700 flex items-center justify-center p-2 border border-gray-200 dark:border-gray-600">
+            <div id="uploadedImagePreviewContainer" class="hidden w-full min-h-[250px] max-h-[60vh] overflow-hidden rounded-lg mb-6 bg-gray-100 dark:bg-gray-700 flex items-center justify-center p-2 border border-gray-200 dark:border-gray-600">
                 <img id="uploadedImageDisplay" class="max-w-full max-h-full object-contain" alt="Uploaded Image Preview" />
             </div>
 
@@ -663,14 +661,14 @@
 
                 <!-- Zoom Slider (only shown in webcam mode) -->
                 <div id="zoomControls" class="zoom-controls hidden mt-4">
-                    <label for="zoomSlider" class="text-base font-medium mb-2 text-gray-700 dark:text-gray-300">Zoom Level: <span id="zoomValue">1.0</span>x</label>
+                    <label for="zoomSlider" class="text-base font-medium mb-2 text-gray-700 dark:text-gray-200">Zoom Level: <span id="zoomValue">1.0</span>x</label>
                     <input type="range" id="zoomSlider" min="1.0" max="4.0" value="1.0" step="0.1">
                 </div>
             </div>
 
             <div id="loading" class="hidden flex flex-col items-center mt-4">
                 <div class="spinner"></div>
-                <p class="text-gray-700 dark:text-gray-300 text-sm">Processing...</p>
+                <p class="text-gray-700 dark:text-gray-200 text-sm">Processing...</p>
             </div>
 
             <div id="messageBox" class="message-box hidden"></div>
@@ -686,13 +684,13 @@
             </div>
             <div id="predictionsContent" class="predictions-content">
                 <!-- Prediction items will be dynamically inserted here -->
-                <p class="text-gray-500 dark:text-gray-400 text-sm mt-2">Upload an image or start your webcam to see predictions!</p>
+                <p class="text-gray-500 dark:text-gray-200 text-sm mt-2">Upload an image or start your webcam to see predictions!</p>
             </div>
         </div>
 
         <!-- Mini Predictions Button (when sidebar is closed on mobile) -->
         <div id="miniPredictions" class="mini-predictions-container hidden">
-            <span id="miniPredictionText" class="text-sm font-semibold text-gray-700 dark:text-gray-300"></span>
+            <span id="miniPredictionText" class="text-sm font-semibold text-gray-700 dark:text-gray-100"></span>
             <button id="openPredictionsButton">
                 <i class="fas fa-chart-bar"></i>
             </button>
