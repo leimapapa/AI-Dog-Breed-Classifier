@@ -165,7 +165,7 @@
         #uploadArea, #webcamArea {
             width: 100%;
             min-height: 200px;
-            max-height: 65vh; /* Responsive height for video, increased for mobile */
+            max-height: 60vh; /* Responsive height for video, increased for mobile */
             display: none;
             flex-direction: column;
             align-items: center;
@@ -507,6 +507,7 @@
             padding: 0.6rem 1.2rem; /* More padding */
             display: flex;
             align-items: center;
+            color: var(--text-color);
             gap: 0.75rem; /* More gap */
             box-shadow: 0 4px 10px rgba(0,0,0,0.2); /* Stronger shadow */
             z-index: 90;
@@ -605,6 +606,11 @@
             .mini-predictions-container {
                 display: none !important;
             }
+            #miniPredictionText {
+                color: var(--text-color);
+                user-select: none;
+                pointer-events: none;
+            }
             #initialMessage {
                 display: none;
             }
@@ -619,7 +625,7 @@
     <div class="main-container">
         <!-- Main Content Area -->
         <div class="main-content flex flex-col items-center w-full">
-            <h3 class="font-extrabold mb-2 text-center text-gray-800 dark:text-gray-200 text-2xl">🐕 AI Dog Breed Classifier</h3>
+            <h3 class="font-extrabold mb-2 text-center text-gray-800 dark:text-white text-2xl">🐕 AI Dog Breed Classifier</h3>
             <p id="initialMessage" class="text-sm text-gray-600 dark:text-gray-200 mb-4 text-center">Choose an input source below to get started!</p>
             <div id="livePredictionDisplay" class="hidden">
                 <!-- Live prediction will appear here -->
@@ -690,7 +696,7 @@
 
         <!-- Mini Predictions Button (when sidebar is closed on mobile) -->
         <div id="miniPredictions" class="mini-predictions-container hidden">
-            <span id="miniPredictionText" class="text-sm font-semibold text-gray-700 dark:text-gray-100"></span>
+            <span id="miniPredictionText" class="text-sm font-semibold"></span>
             <button id="openPredictionsButton">
                 <i class="fas fa-chart-bar"></i>
             </button>
