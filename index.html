@@ -1,29 +1,81 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>🔮🐶 AI Dog Breed Classifier</title>
+    <title>🐕 AI Dog Breed Classifier</title>
     <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        /* Custom CSS variables and base styles */
+        /* Custom CSS variables for light and dark mode */
         :root {
-            --bg: #f3f4f6;
-            --card-bg: #ffffff;
-            --accent-primary: #4f46e5; /* indigo-600 */
-            --accent-secondary: #8b5cf6; /* violet-500 */
-            --text-color: #1f2937;
-            --border-color: #e5e7eb;
-            --radius-md: 0.5rem;
-            --radius-lg: 0.75rem;
-            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --light-bg: #f3f4f6;
+            --light-card-bg: #ffffff;
+            --light-accent-primary: #4f46e5; /* indigo-600 */
+            --light-accent-secondary: #8b5cf6; /* violet-500 */
+            --light-text-color: #1f2937;
+            --light-border-color: #e5e7eb;
+            --light-upload-text: #6b7280; /* gray-500 */
+            --light-message-info-bg: #e0f2fe; /* blue-100 */
+            --light-message-info-color: #2563eb; /* blue-600 */
+            --light-message-info-border: #3b82f6; /* blue-500 */
+            --light-message-error-bg: #fee2e2; /* red-100 */
+            --light-message-error-color: #dc2626; /* red-600 */
+            --light-message-error-border: #ef4444; /* red-500 */
+            --light-message-success-bg: #dcfce7; /* green-100 */
+            --light-message-success-color: #16a34a; /* green-600 */
+            --light-message-success-border: #22c55e; /* green-500 */
+            --light-sidebar-bg: rgba(255, 255, 255, 0.85); /* Partially transparent white */
+            --light-prediction-item-bg: #f9fafb; /* light gray */
         }
 
+        .dark {
+            --bg: #1f2937; /* Dark gray */
+            --card-bg: #374151; /* Slightly lighter dark gray */
+            --accent-primary: #6366f1; /* Indigo-500, brighter for dark mode */
+            --accent-secondary: #a78bfa; /* Violet-400, brighter for dark mode */
+            --text-color: #d1d5db; /* Light gray for text */
+            --border-color: #4b5563; /* Darker border */
+            --upload-text: #9ca3af; /* Lighter gray for upload text */
+            --message-info-bg: #1e3a8a; /* Darker blue */
+            --message-info-color: #93c5fd; /* Lighter blue */
+            --message-info-border: #3b82f6;
+            --message-error-bg: #7f1d1d; /* Darker red */
+            --message-error-color: #fca5a5; /* Lighter red */
+            --message-error-border: #ef4444;
+            --message-success-bg: #166534; /* Darker green */
+            --message-success-color: #a7f3d0; /* Lighter green */
+            --message-success-border: #22c55e;
+            --sidebar-bg: rgba(55, 65, 81, 0.9); /* Darker, partially transparent */
+            --prediction-item-bg: #4b5563; /* Darker gray for prediction items */
+        }
+
+        /* Fallback for non-dark mode browsers or if dark class is not applied */
+        html:not(.dark) {
+            --bg: var(--light-bg);
+            --card-bg: var(--light-card-bg);
+            --accent-primary: var(--light-accent-primary);
+            --accent-secondary: var(--light-accent-secondary);
+            --text-color: var(--light-text-color);
+            --border-color: var(--light-border-color);
+            --upload-text: var(--light-upload-text);
+            --message-info-bg: var(--light-message-info-bg);
+            --message-info-color: var(--light-message-info-color);
+            --message-info-border: var(--light-message-info-border);
+            --message-error-bg: var(--light-message-error-bg);
+            --message-error-color: var(--light-message-error-color);
+            --message-error-border: var(--light-message-error-border);
+            --message-success-bg: var(--light-message-success-bg);
+            --message-success-color: var(--light-message-success-color);
+            --message-success-border: var(--light-message-success-border);
+            --sidebar-bg: var(--light-sidebar-bg);
+            --prediction-item-bg: var(--light-prediction-item-bg);
+        }
+
+        /* General styles, using CSS variables */
         * {
             box-sizing: border-box;
             margin: 0;
@@ -38,34 +90,37 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: flex-start; /* Align content to the top */
-            padding: 0.5rem; /* Minimal padding for more screen space */
-            overflow-x: hidden; /* Prevent horizontal scroll due to sidebar */
-            touch-action: pan-y; /* Allow vertical pan, but prevent browser zoom/pan on X axis for body */
+            justify-content: flex-start;
+            padding: 0.5rem;
+            overflow-x: hidden;
+            touch-action: pan-y;
+            transition: background-color 0.3s ease, color 0.3s ease; /* Smooth transition for dark mode */
         }
 
         .main-container {
             width: 100%;
-            max-width: 960px; /* Increased max-width for the overall app container */
+            max-width: 960px;
             display: flex;
-            flex-direction: column; /* Default to column for mobile */
+            flex-direction: column;
             align-items: center;
-            flex-grow: 1; /* Allow container to grow */
+            flex-grow: 1;
             background-color: var(--card-bg);
-            border-radius: var(--radius-lg);
-            box-shadow: var(--shadow-lg);
+            border-radius: 0.75rem; /* Using radius-lg directly */
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* Using shadow-lg directly */
             padding: 1rem;
-            position: relative; /* For sidebar positioning */
+            position: relative;
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
         }
 
         /* Mode Toggle */
         .toggle-bar {
             display: flex;
             width: 100%;
-            border-radius: var(--radius-lg);
+            border-radius: 0.75rem;
             overflow: hidden;
             margin-bottom: 1rem;
             background-color: var(--border-color);
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1); /* Inner shadow for depth */
         }
 
         .toggle-btn {
@@ -78,20 +133,40 @@
             color: var(--text-color);
             background: transparent;
             text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .toggle-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--accent-primary);
+            border-radius: 0.75rem;
+            z-index: -1;
+            transform: scaleX(0);
+            transition: transform 0.3s ease-in-out;
+            transform-origin: left center;
         }
 
         .toggle-btn.active {
-            background-color: var(--accent-primary);
-            color: white;
-            box-shadow: var(--shadow-md);
+            color: white; /* Active button text is always white */
+        }
+
+        .toggle-btn.active::before {
+            transform: scaleX(1);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* Shadow-md for active button */
         }
 
         /* Webcam & Upload Areas */
         #uploadArea, #webcamArea {
             width: 100%;
             min-height: 200px;
-            max-height: 50vh;
-            display: none; /* Controlled by JS */
+            max-height: 50vh; /* Responsive height for video */
+            display: none;
             flex-direction: column;
             align-items: center;
             justify-content: center;
@@ -99,22 +174,33 @@
 
         .upload-area {
             border: 2px dashed var(--border-color);
-            border-radius: var(--radius-lg);
+            border-radius: 0.75rem;
             padding: 2rem 1rem;
             text-align: center;
             cursor: pointer;
             transition: all 0.2s ease-in-out;
-            color: #6b7280; /* gray-500 */
+            color: var(--upload-text);
+            display: flex; /* Ensure content is centered */
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-weight: 500;
         }
 
         .upload-area:hover {
             border-color: var(--accent-primary);
-            background-color: rgba(79, 70, 229, 0.05);
+            background-color: rgba(79, 70, 229, 0.05); /* Light hover for both themes */
+        }
+        .dark .upload-area:hover {
+            background-color: rgba(99, 102, 241, 0.1); /* Darker hover for dark theme */
         }
 
         .upload-area.dragover {
             background-color: rgba(79, 70, 229, 0.15);
             border-color: var(--accent-primary);
+        }
+        .dark .upload-area.dragover {
+            background-color: rgba(99, 102, 241, 0.25);
         }
 
         #fileInput {
@@ -124,41 +210,35 @@
         /* Video Container */
         .video-container {
             width: 100%;
-            height: 70vh; /* Takes up a significant portion of the viewport height */
+            /* min-height: 250px; /* Minimum height for video container on mobile */
+            /* max-height: 70vh; /* Max height to fit within viewport */
+            aspect-ratio: 16 / 9; /* Maintain aspect ratio for video */
             position: relative;
             overflow: hidden;
-            border-radius: var(--radius-lg);
-            box-shadow: var(--shadow-md);
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
             background-color: #000;
-            display: flex; /* For centering content */
+            display: flex;
             align-items: center;
             justify-content: center;
             margin-bottom: 1rem;
-            touch-action: pinch-zoom; /* Allow pinch zoom only on video container */
+            touch-action: pinch-zoom;
         }
 
-        video {
+        video, #imagePreview {
             display: block;
             width: 100%;
             height: 100%;
             object-fit: cover; /* Fill the container, might crop */
             transform-origin: center center;
             transition: transform 0.05s ease-out;
-        }
-
-        #imagePreview {
-            width: 100%;
-            height: 100%; /* Fill the video container */
-            object-fit: contain; /* Show entire image */
-            border-radius: var(--radius-lg);
-            background-color: #000;
-            display: none; /* Controlled by JS */
+            border-radius: 0.75rem; /* Ensure image/video respects container radius */
         }
 
         /* Overlay Buttons */
         .button-overlay {
             position: absolute;
-            background-color: rgba(0, 0, 0, 0.4);
+            background-color: rgba(0, 0, 0, 0.5); /* Slightly darker overlay for better contrast */
             color: white;
             border: none;
             border-radius: 50%;
@@ -167,20 +247,20 @@
             justify-content: center;
             cursor: pointer;
             z-index: 10;
-            transition: background-color 0.2s ease-in-out, transform 0.2s ease-in-out;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            transition: background-color 0.2s ease-in-out, transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3); /* Stronger shadow for floating effect */
         }
 
         .button-overlay:hover {
-            background-color: rgba(0, 0, 0, 0.6);
-            transform: translateY(-2px);
+            background-color: rgba(0, 0, 0, 0.7);
+            transform: translateY(-2px) scale(1.05); /* Slight lift and scale on hover */
         }
 
         #cameraToggleButton {
             top: 0.75rem;
             right: 0.75rem;
-            width: 2.5rem;
-            height: 2.5rem;
+            width: 2.8rem; /* Slightly larger */
+            height: 2.8rem;
             font-size: 1.25rem;
         }
 
@@ -188,14 +268,18 @@
             bottom: 0.75rem;
             left: 50%;
             transform: translateX(-50%);
-            width: 4rem;
-            height: 4rem;
-            font-size: 1.5rem;
-            background-color: rgba(79, 70, 229, 0.6); /* Indigo */
+            width: 4.5rem; /* Slightly larger */
+            height: 4.5rem;
+            font-size: 1.75rem;
+            background-color: var(--accent-primary); /* Use primary accent color */
+            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
         }
 
         #takePhotoButton.stop-continuous {
-            background-color: rgba(220, 38, 38, 0.6); /* Red */
+            background-color: #ef4444; /* red-500 */
+        }
+        #takePhotoButton.stop-continuous:hover {
+            background-color: #dc2626; /* red-600 */
         }
 
         /* Zoom Slider */
@@ -210,24 +294,32 @@
         input[type="range"] {
             -webkit-appearance: none;
             width: 100%;
-            height: 0.5rem;
+            height: 0.6rem; /* Slightly thicker */
             background: var(--border-color);
             border-radius: 0.5rem;
             outline: none;
-            opacity: 0.7;
+            opacity: 0.8;
             transition: opacity .2s;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
         }
 
         input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none;
             appearance: none;
-            width: 1.25rem;
-            height: 1.25rem;
+            width: 1.5rem; /* Larger thumb */
+            height: 1.5rem;
             border-radius: 50%;
             background: var(--accent-primary);
-            cursor: pointer;
-            box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+            cursor: grab; /* Indicate draggable */
+            box-shadow: 0 0 8px rgba(0, 0, 0, 0.4); /* Stronger shadow for thumb */
+            border: 2px solid var(--card-bg); /* Border for thumb */
+            transition: background-color 0.2s ease, transform 0.1s ease;
         }
+        input[type="range"]::-webkit-slider-thumb:active {
+            cursor: grabbing;
+            transform: scale(1.1);
+        }
+
 
         /* Loading & Messages */
         #loading {
@@ -238,9 +330,9 @@
         }
 
         .spinner {
-            width: 24px;
-            height: 24px;
-            border: 3px solid rgba(0, 0, 0, .2);
+            width: 32px; /* Larger spinner */
+            height: 32px;
+            border: 4px solid rgba(0, 0, 0, .2); /* Thicker border */
             border-top-color: var(--accent-primary);
             border-radius: 50%;
             animation: spin 1s linear infinite;
@@ -255,44 +347,46 @@
 
         #messageBox {
             padding: 0.75rem;
-            border-radius: var(--radius-md);
+            border-radius: 0.5rem;
             text-align: center;
             font-weight: 600;
             display: none;
             width: 100%;
             margin-top: 1rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
 
         #messageBox.error {
-            background-color: #fee2e2; /* red-100 */
-            color: #dc2626; /* red-600 */
-            border: 1px solid #ef4444; /* red-500 */
+            background-color: var(--message-error-bg);
+            color: var(--message-error-color);
+            border: 1px solid var(--message-error-border);
         }
 
         #messageBox.success {
-            background-color: #dcfce7; /* green-100 */
-            color: #16a34a; /* green-600 */
-            border: 1px solid #22c55e; /* green-500 */
+            background-color: var(--message-success-bg);
+            color: var(--message-success-color);
+            border: 1px solid var(--message-success-border);
         }
 
         #messageBox.info {
-            background-color: #e0f2fe; /* blue-100 */
-            color: #2563eb; /* blue-600 */
-            border: 1px solid #3b82f6; /* blue-500 */
+            background-color: var(--message-info-bg);
+            color: var(--message-info-color);
+            border: 1px solid var(--message-info-border);
         }
 
         /* Predictions Sidebar */
         #predictionsSidebar {
             position: fixed;
             top: 0;
-            right: -300px; /* Hidden off-screen initially */
-            width: 300px; /* Standard sidebar width */
+            right: -100vw; /* Hidden off-screen, full width on mobile */
+            width: 100vw; /* Occupy full width on mobile */
+            max-width: 350px; /* Limit width on larger screens to prevent it from being too wide */
             height: 100vh;
-            background: rgba(255, 255, 255, 0.85); /* Partially transparent white */
+            background: var(--sidebar-bg); /* Use CSS variable */
             backdrop-filter: blur(8px);
             box-shadow: -4px 0 10px rgba(0, 0, 0, 0.2);
             transition: right 0.3s ease-in-out;
-            z-index: 100; /* High z-index to overlay content */
+            z-index: 100;
             display: flex;
             flex-direction: column;
             padding: 1rem;
@@ -300,7 +394,7 @@
         }
 
         #predictionsSidebar.open {
-            right: 0; /* Slides into view */
+            right: 0;
         }
 
         .predictions-header {
@@ -313,45 +407,70 @@
         }
 
         .predictions-header h3 {
-            font-size: 1.25rem;
+            font-size: 1.4rem; /* Slightly larger heading */
             font-weight: 700;
+            color: var(--accent-primary); /* Highlight header */
         }
 
         .predictions-header button {
             background: none;
             border: none;
-            font-size: 1.5rem;
+            font-size: 1.75rem; /* Larger icon */
             cursor: pointer;
-            color: var(--accent-primary);
+            color: var(--text-color); /* Use general text color */
             padding: 0.25rem;
             border-radius: 50%;
-            transition: background-color 0.2s;
+            transition: background-color 0.2s, color 0.2s;
         }
 
         .predictions-header button:hover {
             background-color: var(--border-color);
+            color: var(--accent-primary);
         }
 
         .predictions-content {
             flex-grow: 1;
-            overflow-y: auto; /* Enable scrolling if many predictions */
+            overflow-y: auto;
+            padding-right: 5px; /* Add some padding for scrollbar */
         }
+        /* Custom scrollbar for predictions content */
+        .predictions-content::-webkit-scrollbar {
+            width: 8px;
+        }
+        .predictions-content::-webkit-scrollbar-track {
+            background: var(--border-color);
+            border-radius: 10px;
+        }
+        .predictions-content::-webkit-scrollbar-thumb {
+            background: var(--accent-primary);
+            border-radius: 10px;
+        }
+        .predictions-content::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-secondary);
+        }
+
 
         .prediction-item {
             display: flex;
             flex-direction: column;
-            background-color: #f9fafb; /* light gray */
-            margin-bottom: 0.5rem;
-            padding: 0.75rem 1rem;
-            border-radius: var(--radius-md);
+            background-color: var(--prediction-item-bg);
+            margin-bottom: 0.75rem; /* More spacing */
+            padding: 1rem;
+            border-radius: 0.5rem;
             border: 1px solid var(--border-color);
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Stronger shadow */
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .prediction-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
         }
 
         .prediction-item span:first-child {
-            font-weight: 600;
-            margin-bottom: 0.25rem;
+            font-weight: 700; /* Bolder class name */
+            margin-bottom: 0.5rem;
             color: var(--accent-primary);
+            font-size: 1.1rem;
         }
 
         .prediction-details {
@@ -363,119 +482,131 @@
 
         .confidence-bar {
             flex-grow: 1;
-            height: 0.6rem;
+            height: 0.8rem; /* Thicker bar */
             background: var(--border-color);
-            border-radius: 0.3rem;
+            border-radius: 0.4rem;
             overflow: hidden;
-            margin-left: 0.5rem; /* Space between percentage and bar */
+            margin-left: 0.75rem; /* More space */
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
         }
 
         .confidence-fill {
             height: 100%;
             background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
-            transition: width .4s ease-out;
+            transition: width .6s ease-out; /* Slower transition for a smoother animation */
+            border-radius: 0.4rem; /* Match parent radius */
         }
 
         /* Mini Predictions Button (when sidebar is closed) */
         .mini-predictions-container {
             position: fixed;
-            bottom: 2.5rem;
-            right: 1rem;
-            background-color: rgba(255, 255, 255, 0.85); /* Glassmorphism effect */
+            bottom: 1.5rem; /* Move up slightly */
+            right: 1.5rem; /* Move in slightly */
+            background-color: var(--sidebar-bg);
             backdrop-filter: blur(8px);
-            border-radius: 9999px; /* Pill shape */
-            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            padding: 0.6rem 1.2rem; /* More padding */
             display: flex;
             align-items: center;
-            gap: 0.5rem;
-            box-shadow: var(--shadow-md);
-            z-index: 90; /* Below main sidebar, above other content */
+            gap: 0.75rem; /* More gap */
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2); /* Stronger shadow */
+            z-index: 90;
             transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
             cursor: pointer;
+            border: 1px solid var(--border-color); /* Add border */
         }
 
         .mini-predictions-container.hidden {
             opacity: 0;
-            pointer-events: none; /* Make it unclickable when hidden */
-            transform: translateY(20px); /* Slide down when hidden */
+            pointer-events: none;
+            transform: translateY(20px);
         }
 
         .mini-predictions-container #openPredictionsButton {
             background-color: var(--accent-primary);
             color: white;
             border-radius: 50%;
-            width: 2.2rem; /* Slightly smaller button */
-            height: 2.2rem;
-            font-size: 1rem;
-            transition: background-color 0.2s;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            width: 2.5rem; /* Larger button */
+            height: 2.5rem;
+            font-size: 1.1rem;
+            transition: background-color 0.2s, transform 0.2s;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
         }
         .mini-predictions-container #openPredictionsButton:hover {
             background-color: var(--accent-secondary);
+            transform: scale(1.05);
         }
 
-        /* Live Prediction Display (New element for continuous mode) */
+        /* Live Prediction Display */
         #livePredictionDisplay {
-            min-height: 48px; /* Fixed height to prevent layout shifts */
+            min-height: 48px;
             display: flex;
             align-items: center;
             justify-content: center;
             transition: opacity 0.3s ease-in-out;
             text-align: center;
-            padding: 0.5rem 1rem;
-            border-radius: var(--radius-md);
-            background-color: #e0f2fe; /* blue-100 */
-            color: #2563eb; /* blue-600 */
+            padding: 0.75rem 1.25rem; /* More padding */
+            border-radius: 0.5rem;
+            background-color: var(--message-info-bg); /* Use info message background */
+            color: var(--message-info-color); /* Use info message color */
             font-weight: 600;
-            width: 100%; /* Take full width */
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-            margin-bottom: 1rem; /* Spacing below it */
+            width: 100%;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 1rem;
+            border: 1px solid var(--message-info-border);
+        }
+        .dark #livePredictionDisplay {
+             background-color: var(--message-info-bg);
+             color: var(--message-info-color);
         }
 
 
         /* Desktop Layout - Side-by-side */
         @media (min-width: 768px) {
+            body {
+                padding: 1rem; /* More padding on desktop */
+            }
             .main-container {
-                flex-direction: row; /* Side-by-side for desktop */
+                flex-direction: row;
                 justify-content: space-between;
-                align-items: flex-start; /* Align to top */
+                align-items: flex-start;
                 padding: 1.5rem;
             }
 
             .main-content {
-                flex: 1; /* Takes up available space */
-                max-width: calc(100% - 300px - 1.5rem); /* Account for sidebar width + gap */
-                margin-right: 1.5rem; /* Gap between main content and sidebar */
+                flex: 1;
+                max-width: calc(100% - 350px - 2rem); /* Account for sidebar width + gap, adjust for new max-width */
+                margin-right: 2rem; /* Larger gap */
             }
 
             .video-container {
-                height: 50vh; /* Adjust height for desktop */
-                aspect-ratio: 16 / 9; /* Maintain aspect ratio */
-                max-width: 100%; /* Ensure it doesn't overflow */
+                height: 50vh;
+                max-width: none; /* No max width for video on desktop */
+                min-height: 400px; /* Ensure a decent height */
             }
 
             #predictionsSidebar {
-                position: static; /* No longer fixed */
-                width: 300px; /* Fixed width sidebar */
-                height: auto; /* Height adapts to content */
-                min-height: 400px; /* Minimum height for consistency */
-                box-shadow: none; /* Remove shadow to blend with main container */
-                border-left: 1px solid var(--border-color); /* Separator line */
-                border-radius: 0; /* No radius on left edge */
-                right: auto; /* Reset right position */
-                transition: none; /* No transition for static position */
-                background: var(--card-bg); /* Use solid background for desktop */
+                position: static;
+                width: 350px; /* Slightly wider sidebar on desktop */
+                height: auto;
+                min-height: 500px; /* Consistent height */
+                box-shadow: none;
+                border-left: 1px solid var(--border-color);
+                border-radius: 0;
+                right: auto;
+                transition: none;
+                background: var(--card-bg);
                 backdrop-filter: none;
             }
 
             #predictionsSidebar .predictions-header button {
-                display: none; /* Hide close button on desktop */
+                display: none;
             }
             .mini-predictions-container {
-                display: none !important; /* Always hide mini predictions on desktop */
+                display: none !important;
             }
             #initialMessage {
-                display: none; /* Hide initial message on desktop when not needed */
+                display: none;
             }
             #livePredictionDisplay {
                 display: none !important;
@@ -488,26 +619,27 @@
     <div class="main-container">
         <!-- Main Content Area -->
         <div class="main-content flex flex-col items-center w-full">
-            <h3 class="font-extrabold mb-2 text-center text-gray-800">🔮🐶 AI Dog Breed Classifier</h3>
-            <p id="initialMessage" class="text-xs text-gray-600 mb-4 text-center">Choose an input source below to get started!</p>
+            <h3 class="font-extrabold mb-2 text-center text-gray-800 dark:text-gray-200 text-2xl">🐕 AI Dog Breed Classifier</h3>
+            <p id="initialMessage" class="text-sm text-gray-600 dark:text-gray-400 mb-4 text-center">Choose an input source below to get started!</p>
             <div id="livePredictionDisplay" class="hidden">
                 <!-- Live prediction will appear here -->
             </div>
 
             <!-- Mode toggle -->
             <div class="toggle-bar mb-6">
-                <button id="uploadToggle" class="toggle-btn active">📁 Upload</button>
-                <button id="webcamToggle" class="toggle-btn">📸 Webcam</button>
+                <button id="uploadToggle" class="toggle-btn active"> <i class="fas fa-cloud-upload-alt mr-2"></i> Upload</button>
+                <button id="webcamToggle" class="toggle-btn"><i class="fas fa-video mr-2"></i> Webcam</button>
             </div>
 
             <!-- Upload panel -->
             <div id="uploadArea" class="upload-area w-full mb-6">
+                <i class="fas fa-file-upload text-4xl mb-3"></i>
                 Drop an image here or click to browse
                 <input type="file" id="fileInput" accept="image/*" />
             </div>
 
             <!-- Uploaded Image Preview (shown only in Upload mode when an image is loaded) -->
-            <div id="uploadedImagePreviewContainer" class="hidden w-full h-48 overflow-hidden rounded-lg mb-6 bg-gray-100 flex items-center justify-center p-2 border border-gray-200">
+            <div id="uploadedImagePreviewContainer" class="hidden w-full h-48 overflow-hidden rounded-lg mb-6 bg-gray-100 dark:bg-gray-700 flex items-center justify-center p-2 border border-gray-200 dark:border-gray-600">
                 <img id="uploadedImageDisplay" class="max-w-full max-h-full object-contain" alt="Uploaded Image Preview" />
             </div>
 
@@ -529,14 +661,14 @@
 
                 <!-- Zoom Slider (only shown in webcam mode) -->
                 <div id="zoomControls" class="zoom-controls hidden mt-4">
-                    <label for="zoomSlider" class="text-lg font-medium mb-2 text-gray-700">Zoom Level: <span id="zoomValue">1.0</span>x</label>
+                    <label for="zoomSlider" class="text-base font-medium mb-2 text-gray-700 dark:text-gray-300">Zoom Level: <span id="zoomValue">1.0</span>x</label>
                     <input type="range" id="zoomSlider" min="1.0" max="4.0" value="1.0" step="0.1">
                 </div>
             </div>
 
             <div id="loading" class="hidden flex flex-col items-center mt-4">
                 <div class="spinner"></div>
-                <p class="text-gray-700 text-sm">Processing...</p>
+                <p class="text-gray-700 dark:text-gray-300 text-sm">Processing...</p>
             </div>
 
             <div id="messageBox" class="message-box hidden"></div>
@@ -552,12 +684,13 @@
             </div>
             <div id="predictionsContent" class="predictions-content">
                 <!-- Prediction items will be dynamically inserted here -->
+                <p class="text-gray-500 dark:text-gray-400 text-sm mt-2">Upload an image or start your webcam to see predictions!</p>
             </div>
         </div>
 
         <!-- Mini Predictions Button (when sidebar is closed on mobile) -->
         <div id="miniPredictions" class="mini-predictions-container hidden">
-            <span id="miniPredictionText" class="text-sm font-semibold text-gray-700"></span>
+            <span id="miniPredictionText" class="text-sm font-semibold text-gray-700 dark:text-gray-300"></span>
             <button id="openPredictionsButton">
                 <i class="fas fa-chart-bar"></i>
             </button>
@@ -685,7 +818,7 @@
                 session = await ort.InferenceSession.create('./mobilenet_classifier.onnx', {
                     executionProviders: ['wasm']
                 });
-                showMessage('Model ready 🚀', 'success');
+                showMessage('Model ready! 🐶', 'success');
             } catch (e) {
                 showMessage('Model error: ' + e.message, 'error');
             }
@@ -977,6 +1110,9 @@
 
         /* --- Event Wiring --- */
         window.addEventListener('DOMContentLoaded', () => {
+            // Set dark mode as default
+            document.documentElement.classList.add('dark');
+
             initModel(); // Initialize ONNX model
 
             // Mode toggles
